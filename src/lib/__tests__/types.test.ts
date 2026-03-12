@@ -44,26 +44,36 @@ describe('RiskScore type', () => {
 })
 
 describe('ComplianceMapping type', () => {
-  it('should accept valid compliance mappings', () => {
+  it('should accept valid OWASP Agentic AI and MITRE ATLAS mappings', () => {
     const mapping: ComplianceMapping = {
-      nist: ['AC-2', 'SI-3', 'SC-8'],
-      iso27001: ['A.8.2', 'A.5.15'],
-      soc2: ['CC6.1', 'CC7.2'],
+      owaspAgenticAI: ['ASI01', 'ASI06', 'ASI07'],
+      mitreAtlas: ['AML.T0051', 'AML.T0080.001'],
     }
-    expect(mapping.nist).toHaveLength(3)
-    expect(mapping.iso27001).toHaveLength(2)
-    expect(mapping.soc2).toHaveLength(2)
+    expect(mapping.owaspAgenticAI).toHaveLength(3)
+    expect(mapping.mitreAtlas).toHaveLength(2)
   })
 
   it('should accept empty arrays for each framework', () => {
     const mapping: ComplianceMapping = {
-      nist: [],
-      iso27001: [],
-      soc2: [],
+      owaspAgenticAI: [],
+      mitreAtlas: [],
     }
-    expect(mapping.nist).toHaveLength(0)
-    expect(mapping.iso27001).toHaveLength(0)
-    expect(mapping.soc2).toHaveLength(0)
+    expect(mapping.owaspAgenticAI).toHaveLength(0)
+    expect(mapping.mitreAtlas).toHaveLength(0)
+  })
+
+  it('should accept all valid OWASP Agentic AI ASI IDs', () => {
+    const asiIds = ['ASI01', 'ASI02', 'ASI03', 'ASI04', 'ASI05', 'ASI06', 'ASI07', 'ASI08', 'ASI09', 'ASI10']
+    const mapping: ComplianceMapping = { owaspAgenticAI: asiIds, mitreAtlas: [] }
+    expect(mapping.owaspAgenticAI).toHaveLength(10)
+    asiIds.forEach(id => expect(mapping.owaspAgenticAI).toContain(id))
+  })
+
+  it('should accept MITRE ATLAS technique and sub-technique IDs', () => {
+    const atlasIds = ['AML.T0051', 'AML.T0051.001', 'AML.T0080', 'AML.T0080.001', 'AML.T0010']
+    const mapping: ComplianceMapping = { owaspAgenticAI: [], mitreAtlas: atlasIds }
+    expect(mapping.mitreAtlas).toContain('AML.T0051.001')
+    expect(mapping.mitreAtlas).toContain('AML.T0080.001')
   })
 })
 
@@ -79,18 +89,16 @@ describe('Mitigation type', () => {
 
   it('should accept complianceMapping when provided', () => {
     const mitigation: Mitigation = {
-      recommendation: 'Use encryption at rest',
-      reasoning: 'Protects stored data',
-      caveats: 'Key management overhead',
+      recommendation: 'Sanitize inputs and validate tool outputs',
+      reasoning: 'Prevents prompt injection and tool misuse',
+      caveats: 'Requires ongoing prompt red-teaming',
       complianceMapping: {
-        nist: ['SC-28'],
-        iso27001: ['A.8.24'],
-        soc2: ['CC6.7'],
+        owaspAgenticAI: ['ASI01', 'ASI02'],
+        mitreAtlas: ['AML.T0051', 'AML.T0051.001'],
       },
     }
-    expect(mitigation.complianceMapping?.nist).toContain('SC-28')
-    expect(mitigation.complianceMapping?.iso27001).toContain('A.8.24')
-    expect(mitigation.complianceMapping?.soc2).toContain('CC6.7')
+    expect(mitigation.complianceMapping?.owaspAgenticAI).toContain('ASI01')
+    expect(mitigation.complianceMapping?.mitreAtlas).toContain('AML.T0051.001')
   })
 })
 
@@ -126,15 +134,15 @@ describe('LayerData type', () => {
         reasoning: 'Reduces susceptibility to poisoning',
         caveats: 'Requires labeled adversarial data',
         complianceMapping: {
-          nist: ['SI-3', 'SI-10'],
-          iso27001: ['A.8.8'],
-          soc2: ['CC7.1'],
+          owaspAgenticAI: ['ASI04', 'ASI06'],
+          mitreAtlas: ['AML.T0020', 'AML.T0018'],
         },
       },
       status: 'complete',
     }
     expect(layer.riskScore?.riskLevel).toBe('High')
-    expect(layer.mitigation?.complianceMapping?.nist).toContain('SI-3')
+    expect(layer.mitigation?.complianceMapping?.owaspAgenticAI).toContain('ASI04')
+    expect(layer.mitigation?.complianceMapping?.mitreAtlas).toContain('AML.T0020')
     expect(layer.status).toBe('complete')
   })
 

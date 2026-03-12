@@ -164,14 +164,14 @@ export function LayerCard({ layer }: LayerCardProps) {
                     <div>
                       <h4 className="font-semibold flex items-center gap-2 mb-2">
                         <BookOpen className="h-4 w-4 text-blue-500" />
-                        Compliance Mapping
+                        Framework Mapping
                       </h4>
                       <div className="space-y-2 text-sm">
-                        {layer.mitigation.complianceMapping.nist.length > 0 && (
+                        {layer.mitigation.complianceMapping.owaspAgenticAI.length > 0 && (
                           <div>
-                            <span className="font-medium text-muted-foreground">NIST SP 800-53: </span>
+                            <span className="font-medium text-muted-foreground">OWASP Agentic AI: </span>
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {layer.mitigation.complianceMapping.nist.map((ctrl) => (
+                              {layer.mitigation.complianceMapping.owaspAgenticAI.map((ctrl) => (
                                 <Badge key={ctrl} variant="outline" className="text-xs font-mono">
                                   {ctrl}
                                 </Badge>
@@ -179,23 +179,11 @@ export function LayerCard({ layer }: LayerCardProps) {
                             </div>
                           </div>
                         )}
-                        {layer.mitigation.complianceMapping.iso27001.length > 0 && (
+                        {layer.mitigation.complianceMapping.mitreAtlas.length > 0 && (
                           <div>
-                            <span className="font-medium text-muted-foreground">ISO 27001:2022: </span>
+                            <span className="font-medium text-muted-foreground">MITRE ATLAS: </span>
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {layer.mitigation.complianceMapping.iso27001.map((ctrl) => (
-                                <Badge key={ctrl} variant="outline" className="text-xs font-mono">
-                                  {ctrl}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {layer.mitigation.complianceMapping.soc2.length > 0 && (
-                          <div>
-                            <span className="font-medium text-muted-foreground">SOC 2: </span>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {layer.mitigation.complianceMapping.soc2.map((ctrl) => (
+                              {layer.mitigation.complianceMapping.mitreAtlas.map((ctrl) => (
                                 <Badge key={ctrl} variant="outline" className="text-xs font-mono">
                                   {ctrl}
                                 </Badge>

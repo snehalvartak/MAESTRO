@@ -28,9 +28,8 @@ const completeLayer: LayerData = {
     reasoning: 'Reduces susceptibility to prompt injection and poisoning attacks.',
     caveats: 'Requires labeled adversarial data and ongoing monitoring.',
     complianceMapping: {
-      nist: ['SI-3', 'SI-10', 'SC-8'],
-      iso27001: ['A.8.8', 'A.8.2'],
-      soc2: ['CC7.1', 'CC6.1'],
+      owaspAgenticAI: ['ASI01', 'ASI06', 'ASI07'],
+      mitreAtlas: ['AML.T0051', 'AML.T0051.001', 'AML.T0020'],
     },
   },
 }
@@ -94,39 +93,32 @@ describe('LayerCard', () => {
     })
   })
 
-  describe('compliance mapping display', () => {
-    it('shows NIST controls in mitigation panel', () => {
+  describe('framework mapping display', () => {
+    it('shows OWASP Agentic AI IDs in mitigation panel', () => {
       render(<LayerCard layer={completeLayer} />)
       openMitigationPanel()
-      expect(screen.getByText('SI-3')).toBeInTheDocument()
-      expect(screen.getByText('SI-10')).toBeInTheDocument()
-      expect(screen.getByText('SC-8')).toBeInTheDocument()
+      expect(screen.getByText('ASI01')).toBeInTheDocument()
+      expect(screen.getByText('ASI06')).toBeInTheDocument()
+      expect(screen.getByText('ASI07')).toBeInTheDocument()
     })
 
-    it('shows ISO 27001 controls in mitigation panel', () => {
+    it('shows MITRE ATLAS technique IDs in mitigation panel', () => {
       render(<LayerCard layer={completeLayer} />)
       openMitigationPanel()
-      expect(screen.getByText('A.8.8')).toBeInTheDocument()
-      expect(screen.getByText('A.8.2')).toBeInTheDocument()
-    })
-
-    it('shows SOC 2 criteria in mitigation panel', () => {
-      render(<LayerCard layer={completeLayer} />)
-      openMitigationPanel()
-      expect(screen.getByText('CC7.1')).toBeInTheDocument()
-      expect(screen.getByText('CC6.1')).toBeInTheDocument()
+      expect(screen.getByText('AML.T0051')).toBeInTheDocument()
+      expect(screen.getByText('AML.T0051.001')).toBeInTheDocument()
+      expect(screen.getByText('AML.T0020')).toBeInTheDocument()
     })
 
     it('shows framework labels in mitigation panel', () => {
       render(<LayerCard layer={completeLayer} />)
       openMitigationPanel()
-      expect(screen.getByText('NIST SP 800-53:')).toBeInTheDocument()
-      expect(screen.getByText('ISO 27001:2022:')).toBeInTheDocument()
-      expect(screen.getByText('SOC 2:')).toBeInTheDocument()
+      expect(screen.getByText('OWASP Agentic AI:')).toBeInTheDocument()
+      expect(screen.getByText('MITRE ATLAS:')).toBeInTheDocument()
     })
 
-    it('does not show compliance section when complianceMapping is absent', () => {
-      const layerNoCompliance: LayerData = {
+    it('does not show framework section when complianceMapping is absent', () => {
+      const layerNoMapping: LayerData = {
         ...completeLayer,
         mitigation: {
           recommendation: 'Apply validation',
@@ -134,24 +126,26 @@ describe('LayerCard', () => {
           caveats: 'None',
         },
       }
-      render(<LayerCard layer={layerNoCompliance} />)
+      render(<LayerCard layer={layerNoMapping} />)
       openMitigationPanel()
-      expect(screen.queryByText('NIST SP 800-53:')).not.toBeInTheDocument()
+      expect(screen.queryByText('OWASP Agentic AI:')).not.toBeInTheDocument()
+      expect(screen.queryByText('MITRE ATLAS:')).not.toBeInTheDocument()
     })
 
-    it('does not show compliance section when arrays are empty', () => {
-      const layerEmptyCompliance: LayerData = {
+    it('does not show framework section when arrays are empty', () => {
+      const layerEmptyMapping: LayerData = {
         ...completeLayer,
         mitigation: {
           recommendation: 'Apply validation',
           reasoning: 'Security best practice',
           caveats: 'None',
-          complianceMapping: { nist: [], iso27001: [], soc2: [] },
+          complianceMapping: { owaspAgenticAI: [], mitreAtlas: [] },
         },
       }
-      render(<LayerCard layer={layerEmptyCompliance} />)
+      render(<LayerCard layer={layerEmptyMapping} />)
       openMitigationPanel()
-      expect(screen.queryByText('NIST SP 800-53:')).not.toBeInTheDocument()
+      expect(screen.queryByText('OWASP Agentic AI:')).not.toBeInTheDocument()
+      expect(screen.queryByText('MITRE ATLAS:')).not.toBeInTheDocument()
     })
   })
 

@@ -28,9 +28,8 @@ const LayerDataSchema = z.object({
     reasoning: z.string(),
     caveats: z.string(),
     complianceMapping: z.object({
-      nist: z.array(z.string()),
-      iso27001: z.array(z.string()),
-      soc2: z.array(z.string()),
+      owaspAgenticAI: z.array(z.string()),
+      mitreAtlas: z.array(z.string()),
     }).optional(),
   }).nullable(),
   status: z.enum(['pending', 'analyzing', 'complete', 'error']),
@@ -62,7 +61,7 @@ The summary should:
 2.  Include a **Risk Overview** table showing the risk level (Critical/High/Medium/Low) for each MAESTRO layer.
 3.  Highlight the most critical threats identified across all layers, referencing their risk levels.
 4.  Mention the key mitigation themes or the most important recommended actions.
-5.  Note the top compliance frameworks and controls that should be prioritized.
+5.  Note the most frequently mapped OWASP Agentic AI (ASI) and MITRE ATLAS (AML.T) IDs across layers, highlighting which agentic threat categories are most prevalent.
 6.  Conclude with a statement about the importance of a defense-in-depth strategy.
 7.  Be concise, professional, and suitable for a leadership audience.
 8.  Format the output as a single Markdown string.
@@ -89,9 +88,8 @@ The summary should:
 - **Recommendation:** {{mitigation.recommendation}}
 - **Reasoning:** {{mitigation.reasoning}}
 {{#if mitigation.complianceMapping}}
-- **NIST Controls:** {{mitigation.complianceMapping.nist}}
-- **ISO 27001 Controls:** {{mitigation.complianceMapping.iso27001}}
-- **SOC 2 Criteria:** {{mitigation.complianceMapping.soc2}}
+- **OWASP Agentic AI:** {{mitigation.complianceMapping.owaspAgenticAI}}
+- **MITRE ATLAS:** {{mitigation.complianceMapping.mitreAtlas}}
 {{/if}}
 {{/if}}
 {{/each}}

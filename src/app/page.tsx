@@ -381,16 +381,13 @@ export default function Home() {
 
                 // Compliance Mapping
                 if (layer.mitigation.complianceMapping) {
-                    addText("Compliance Mapping:", { size: 10, style: "bold", x: margin + 4 });
+                    addText("Framework Mapping:", { size: 10, style: "bold", x: margin + 4 });
                     const cm = layer.mitigation.complianceMapping;
-                    if (cm.nist.length > 0) {
-                        addText(`NIST SP 800-53: ${cm.nist.join(', ')}`, { size: 9, x: margin + 8, color: 80 });
+                    if (cm.owaspAgenticAI.length > 0) {
+                        addText(`OWASP Agentic AI: ${cm.owaspAgenticAI.join(', ')}`, { size: 9, x: margin + 8, color: 80 });
                     }
-                    if (cm.iso27001.length > 0) {
-                        addText(`ISO 27001:2022: ${cm.iso27001.join(', ')}`, { size: 9, x: margin + 8, color: 80 });
-                    }
-                    if (cm.soc2.length > 0) {
-                        addText(`SOC 2: ${cm.soc2.join(', ')}`, { size: 9, x: margin + 8, color: 80 });
+                    if (cm.mitreAtlas.length > 0) {
+                        addText(`MITRE ATLAS: ${cm.mitreAtlas.join(', ')}`, { size: 9, x: margin + 8, color: 80 });
                     }
                 }
             }

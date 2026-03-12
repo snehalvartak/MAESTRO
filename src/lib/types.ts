@@ -8,9 +8,8 @@ export type RiskScore = {
 };
 
 export type ComplianceMapping = {
-  nist: string[];
-  iso27001: string[];
-  soc2: string[];
+  owaspAgenticAI: string[];  // ASI01–ASI10 (OWASP Top 10 for Agentic Applications 2026)
+  mitreAtlas: string[];      // AML.Txxxx  (MITRE ATLAS v5.4 techniques)
 };
 
 export type Mitigation = {
