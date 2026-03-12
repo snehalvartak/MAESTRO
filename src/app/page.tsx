@@ -15,17 +15,19 @@ import { LayerCard } from "@/components/layer-card";
 import { SidebarInputForm } from "@/components/sidebar-input-form";
 import { suggestThreat, recommendMitigation, getExecutiveSummary, getArchitectureDiagram } from "@/app/actions";
 import { MAESTRO_LAYERS } from "@/data/maestro";
-import { type LayerData } from "@/lib/types";
+import { type LayerData, type RiskLevel } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Download, Terminal, ToyBrick } from "lucide-react";
+import { Download, Terminal, ToyBrick, FileJson, BarChart3 } from "lucide-react";
 import { Spinner } from "@/components/icons";
 import { MermaidDiagram } from "@/components/mermaid-diagram";
+import { Badge } from "@/components/ui/badge";
 
 const INITIAL_LAYERS: LayerData[] = MAESTRO_LAYERS.map((layer) => ({
   ...layer,
   threat: null,
+  riskScore: null,
   mitigation: null,
   status: "pending",
 }));
@@ -34,6 +36,14 @@ const MAESTRO_METHODOLOGY_SUMMARY = `This report applies the MAESTRO (Multi-Agen
 
 For more details on the framework, visit: https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro`;
 
+function getRiskColor(level: RiskLevel): string {
+  switch (level) {
+    case 'Critical': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-300';
+    case 'High': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 border-orange-300';
+    case 'Medium': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-300';
+    case 'Low': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-300';
+  }
+}
 
 export default function Home() {
   const [layers, setLayers] = React.useState<LayerData[]>(INITIAL_LAYERS);
@@ -102,15 +112,16 @@ export default function Home() {
           layer.description
         );
         const threat = threatResult.threatAnalysis;
+        const riskScore = threatResult.riskScore;
 
         if (analysisCancelledRef.current) {
            addLog(`[${layer.name}] Analysis stopped before mitigation step.`);
            updateLayerStatus(layer.id, "error");
            continue;
         };
-        addLog(`[${layer.name}] Threat analysis received.`);
+        addLog(`[${layer.name}] Threat analysis received. Risk level: ${riskScore?.riskLevel ?? 'N/A'}`);
         setLayers((prev) =>
-          prev.map((l) => (l.id === layer.id ? { ...l, threat } : l))
+          prev.map((l) => (l.id === layer.id ? { ...l, threat, riskScore } : l))
         );
 
         if (analysisCancelledRef.current) continue;
@@ -147,7 +158,7 @@ export default function Home() {
             addLog("Could not generate executive summary.");
         }
     }
-    
+
     setButtonText("Generate Analysis");
     if (!analysisCancelledRef.current) {
       addLog("Full analysis complete.");
@@ -174,11 +185,35 @@ export default function Home() {
       setIsGeneratingDiagram(false);
     }
   };
-  
+
+  const handleExportJson = () => {
+    const exportData = {
+      generatedAt: new Date().toISOString(),
+      architecture: currentArchitecture,
+      executiveSummary,
+      layers: layers.map((l) => ({
+        id: l.id,
+        name: l.name,
+        status: l.status,
+        riskScore: l.riskScore,
+        threat: l.threat,
+        mitigation: l.mitigation,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "MAESTRO_Threat_Analysis.json";
+    a.click();
+    URL.revokeObjectURL(url);
+    addLog("JSON export saved.");
+  };
+
   const handleDownloadPdf = async () => {
     setIsDownloading(true);
     addLog("PDF generation started...");
-    
+
     try {
         const doc = new jsPDF({unit: "px", format: "letter"});
         const margin = 30;
@@ -201,9 +236,9 @@ export default function Home() {
             doc.setFontSize(size);
             doc.setFont("helvetica", style);
             doc.setTextColor(color);
-            
+
             const lines = doc.splitTextToSize(text, usableWidth - (x > margin ? (x - margin) : 0));
-            
+
             lines.forEach((line: string) => {
                 const textHeight = doc.getTextDimensions(line).h;
                 if (y + textHeight > pageHeight - margin) {
@@ -214,13 +249,13 @@ export default function Home() {
                 y += textHeight * 1.15; // Add line spacing
             });
         };
-        
+
         addLog("Assembling PDF document...");
-        
+
         // --- HEADER ---
         addText("MAESTRO Threat Analysis Report", { size: 20, style: "bold", align: "center", x: pageWidth / 2 });
         y += 10;
-    
+
         // --- DISCLAIMER & DEVELOPER INFO ---
         addText("Developed by: DistributedApps.ai", { size: 8, color: 150 });
         y += 12;
@@ -237,6 +272,21 @@ export default function Home() {
             y += 10;
         }
 
+        // --- RISK SUMMARY TABLE ---
+        const completedLayers = layers.filter(l => l.status === 'complete' && l.riskScore);
+        if (completedLayers.length > 0) {
+            if (y + 60 > pageHeight - margin) { doc.addPage(); y = margin; }
+            addText("Risk Summary", { size: 16, style: "bold" });
+            y += 6;
+            completedLayers.forEach((layer) => {
+                if (layer.riskScore) {
+                    const riskText = `${layer.name}: ${layer.riskScore.riskLevel} (Severity: ${layer.riskScore.severity}, Likelihood: ${layer.riskScore.likelihood})`;
+                    addText(riskText, { size: 10, x: margin + 4, color: 60 });
+                }
+            });
+            y += 10;
+        }
+
         // --- ARCHITECTURE DIAGRAM ---
         if (mermaidCode && diagramContainerRef.current) {
           addLog("Adding diagram to PDF...");
@@ -247,7 +297,7 @@ export default function Home() {
           }
           addText("Architecture Diagram", { size: 16, style: "bold" });
           y += 6;
-          
+
           const svgElement = diagramContainerRef.current.querySelector('svg');
           if (svgElement) {
               const svgData = new XMLSerializer().serializeToString(svgElement);
@@ -258,10 +308,10 @@ export default function Home() {
               canvas.height = svgSize.height * 2;
               canvas.style.width = `${svgSize.width}px`;
               canvas.style.height = `${svgSize.height}px`;
-              
+
               const img = new Image();
               img.src = "data:image/svg+xml;base64," + btoa(svgData);
-              
+
               await new Promise<void>((resolve) => {
                   img.onload = () => {
                       ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -284,46 +334,69 @@ export default function Home() {
         const summaryToUse = executiveSummary || MAESTRO_METHODOLOGY_SUMMARY;
         addText(summaryToUse.replace(/###\s|##\s|#\s|\*\*/g, ''), { size: 10, color: 80 });
         y += 16;
-    
+
         // --- LAYER-BY-LAYER ANALYSIS ---
         layers.forEach((layer) => {
             if (y + 60 > pageHeight - margin) { // Pre-emptive page break check
               doc.addPage();
               y = margin;
             }
-    
+
             doc.setDrawColor(220);
             doc.line(margin, y, pageWidth - margin, y);
             y += 16;
-    
+
             addText(layer.name, { size: 14, style: "bold" });
             y += 4;
-    
+
             if (layer.status === "pending" || layer.status === 'analyzing') {
                 addText("Pending AI investigation...", { size: 10, style: "italic", color: 150 });
             } else if (layer.status === 'error') {
                 addText("An error occurred during analysis.", { size: 10, style: "italic", color: 200 });
             } else if (layer.threat && layer.mitigation) {
+                // Risk Score
+                if (layer.riskScore) {
+                    addText(`Risk Level: ${layer.riskScore.riskLevel} | Severity: ${layer.riskScore.severity} | Likelihood: ${layer.riskScore.likelihood}`, { size: 10, style: "bold", x: margin + 4 });
+                    addText(layer.riskScore.rationale, { size: 9, x: margin + 8, color: 80 });
+                    y += 4;
+                }
+
                 addText("Identified Threats", { size: 12, style: "bold" });
                 addText(layer.threat.replace(/###\s|##\s|#\s|\*\*/g, ''), { size: 10, color: 80 });
                 y += 8;
-    
+
                 addText("Mitigation Strategy", { size: 12, style: "bold" });
-                
+
                 addText("Recommendation:", { size: 10, style: "bold", x: margin + 4 });
                 addText(layer.mitigation.recommendation, { size: 10, x: margin + 8, color: 80});
                 y += 4;
-    
+
                 addText("Reasoning:", { size: 10, style: "bold", x: margin + 4});
                 addText(layer.mitigation.reasoning, { size: 10, x: margin + 8, color: 80 });
                 y += 4;
-    
+
                 addText("Caveats:", { size: 10, style: "bold", x: margin + 4 });
                 addText(layer.mitigation.caveats, { size: 10, x: margin + 8, color: 80 });
+                y += 4;
+
+                // Compliance Mapping
+                if (layer.mitigation.complianceMapping) {
+                    addText("Compliance Mapping:", { size: 10, style: "bold", x: margin + 4 });
+                    const cm = layer.mitigation.complianceMapping;
+                    if (cm.nist.length > 0) {
+                        addText(`NIST SP 800-53: ${cm.nist.join(', ')}`, { size: 9, x: margin + 8, color: 80 });
+                    }
+                    if (cm.iso27001.length > 0) {
+                        addText(`ISO 27001:2022: ${cm.iso27001.join(', ')}`, { size: 9, x: margin + 8, color: 80 });
+                    }
+                    if (cm.soc2.length > 0) {
+                        addText(`SOC 2: ${cm.soc2.join(', ')}`, { size: 9, x: margin + 8, color: 80 });
+                    }
+                }
             }
             y += 10;
         });
-    
+
         addLog("Saving PDF file...");
         doc.save("MAESTRO_Threat_Analysis.pdf");
         addLog("PDF report saved successfully.");
@@ -335,6 +408,9 @@ export default function Home() {
         setIsDownloading(false);
     }
   };
+
+  const completedLayers = layers.filter(l => l.status === 'complete' && l.riskScore);
+  const hasResults = completedLayers.length > 0;
 
   return (
     <SidebarProvider>
@@ -373,14 +449,20 @@ export default function Home() {
                 </p>
               </div>
             </div>
-             <Button onClick={handleDownloadPdf} disabled={isDownloading}>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={handleExportJson} disabled={!hasResults}>
+                <FileJson className="mr-2 h-4 w-4" />
+                Export JSON
+              </Button>
+              <Button onClick={handleDownloadPdf} disabled={isDownloading}>
                 {isDownloading ? (
                   <Spinner className="mr-2 h-4 w-4" />
                 ) : (
                   <Download className="mr-2 h-4 w-4" />
                 )}
-              Download PDF Report
-            </Button>
+                Download PDF Report
+              </Button>
+            </div>
           </div>
 
           <div className="mt-8 grid gap-6 grid-cols-1 lg:grid-cols-12">
@@ -404,7 +486,7 @@ export default function Home() {
               </Card>
             </div>
 
-             <div className="lg:col-span-4">
+            <div className="lg:col-span-4">
               <Card className="h-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <div className="flex items-center gap-2">
@@ -435,7 +517,33 @@ export default function Home() {
                 </CardContent>
               </Card>
             </div>
-            
+
+            {/* Risk Summary */}
+            {hasResults && (
+              <div className="lg:col-span-12">
+                <Card>
+                  <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-2">
+                    <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                    <CardTitle className="text-base font-medium">Risk Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-3">
+                      {completedLayers.map((layer) => (
+                        layer.riskScore && (
+                          <div key={layer.id} className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm ${getRiskColor(layer.riskScore.riskLevel)}`}>
+                            <span className="font-medium">{layer.name}</span>
+                            <Badge className={`text-xs border ${getRiskColor(layer.riskScore.riskLevel)}`}>
+                              {layer.riskScore.riskLevel}
+                            </Badge>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
             {layers.map((layer) => (
               <div key={layer.id} className="lg:col-span-4 md:col-span-6">
                 <LayerCard layer={layer} />

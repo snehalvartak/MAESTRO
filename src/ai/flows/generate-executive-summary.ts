@@ -10,15 +10,28 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
+const RiskScoreSchema = z.object({
+  severity: z.enum(['Critical', 'High', 'Medium', 'Low']),
+  likelihood: z.enum(['High', 'Medium', 'Low']),
+  riskLevel: z.enum(['Critical', 'High', 'Medium', 'Low']),
+  rationale: z.string(),
+});
+
 const LayerDataSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
   threat: z.string().nullable(),
+  riskScore: RiskScoreSchema.nullable().optional(),
   mitigation: z.object({
     recommendation: z.string(),
     reasoning: z.string(),
     caveats: z.string(),
+    complianceMapping: z.object({
+      nist: z.array(z.string()),
+      iso27001: z.array(z.string()),
+      soc2: z.array(z.string()),
+    }).optional(),
   }).nullable(),
   status: z.enum(['pending', 'analyzing', 'complete', 'error']),
 });
@@ -46,12 +59,14 @@ const prompt = ai.definePrompt({
 
 The summary should:
 1.  Briefly acknowledge the analyzed architecture.
-2.  Highlight the most critical threats identified across all layers.
-3.  Mention the key mitigation themes or the most important recommended actions.
-4.  Conclude with a statement about the importance of a defense-in-depth strategy.
-5.  Be concise, professional, and suitable for a leadership audience.
-6.  Format the output as a single Markdown string.
-7.  Include a link to the MAESTRO framework: https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
+2.  Include a **Risk Overview** table showing the risk level (Critical/High/Medium/Low) for each MAESTRO layer.
+3.  Highlight the most critical threats identified across all layers, referencing their risk levels.
+4.  Mention the key mitigation themes or the most important recommended actions.
+5.  Note the top compliance frameworks and controls that should be prioritized.
+6.  Conclude with a statement about the importance of a defense-in-depth strategy.
+7.  Be concise, professional, and suitable for a leadership audience.
+8.  Format the output as a single Markdown string.
+9.  Include a link to the MAESTRO framework: https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro
 
 **Analyzed Architecture:**
 {{{architectureDescription}}}
@@ -61,6 +76,10 @@ The summary should:
 ---
 **Layer: {{name}}**
 **Status: {{status}}**
+{{#if riskScore}}
+**Risk Level: {{riskScore.riskLevel}}** (Severity: {{riskScore.severity}}, Likelihood: {{riskScore.likelihood}})
+**Risk Rationale:** {{riskScore.rationale}}
+{{/if}}
 {{#if threat}}
 **Threats:**
 {{{threat}}}
@@ -69,6 +88,11 @@ The summary should:
 **Mitigation:**
 - **Recommendation:** {{mitigation.recommendation}}
 - **Reasoning:** {{mitigation.reasoning}}
+{{#if mitigation.complianceMapping}}
+- **NIST Controls:** {{mitigation.complianceMapping.nist}}
+- **ISO 27001 Controls:** {{mitigation.complianceMapping.iso27001}}
+- **SOC 2 Criteria:** {{mitigation.complianceMapping.soc2}}
+{{/if}}
 {{/if}}
 {{/each}}
 
@@ -87,5 +111,3 @@ const generateExecutiveSummaryFlow = ai.defineFlow(
     return output!;
   }
 );
-
-    

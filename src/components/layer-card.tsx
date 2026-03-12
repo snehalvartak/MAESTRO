@@ -14,19 +14,33 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { LayerData } from "@/lib/types";
+import { LayerData, RiskLevel } from "@/lib/types";
 import {
   AlertTriangle,
   Lightbulb,
   ShieldAlert,
   ShieldCheck,
   XCircle,
+  BookOpen,
 } from "lucide-react";
 import { Spinner } from "./icons";
 import Markdown from "react-markdown";
 
 interface LayerCardProps {
   layer: LayerData;
+}
+
+function getRiskBadgeClass(level: RiskLevel): string {
+  switch (level) {
+    case 'Critical':
+      return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-300';
+    case 'High':
+      return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 border-orange-300';
+    case 'Medium':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-300';
+    case 'Low':
+      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-300';
+  }
 }
 
 export function LayerCard({ layer }: LayerCardProps) {
@@ -62,7 +76,14 @@ export function LayerCard({ layer }: LayerCardProps) {
               MAESTRO Layer Analysis
             </CardDescription>
           </div>
-          {getStatusBadge()}
+          <div className="flex flex-col items-end gap-1">
+            {getStatusBadge()}
+            {layer.riskScore && (
+              <Badge className={`text-xs border ${getRiskBadgeClass(layer.riskScore.riskLevel)}`}>
+                Risk: {layer.riskScore.riskLevel}
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col">
@@ -90,6 +111,16 @@ export function LayerCard({ layer }: LayerCardProps) {
                 </div>
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground prose prose-sm dark:prose-invert max-w-none">
+                {layer.riskScore && (
+                  <div className={`mb-3 p-2 rounded-md border text-xs ${getRiskBadgeClass(layer.riskScore.riskLevel)}`}>
+                    <div className="flex gap-3 mb-1 font-semibold">
+                      <span>Severity: {layer.riskScore.severity}</span>
+                      <span>Likelihood: {layer.riskScore.likelihood}</span>
+                      <span>Risk: {layer.riskScore.riskLevel}</span>
+                    </div>
+                    <p className="text-xs opacity-80">{layer.riskScore.rationale}</p>
+                  </div>
+                )}
                 <Markdown>{layer.threat}</Markdown>
               </AccordionContent>
             </AccordionItem>
@@ -129,6 +160,52 @@ export function LayerCard({ layer }: LayerCardProps) {
                       {layer.mitigation.caveats}
                     </p>
                   </div>
+                  {layer.mitigation.complianceMapping && (
+                    <div>
+                      <h4 className="font-semibold flex items-center gap-2 mb-2">
+                        <BookOpen className="h-4 w-4 text-blue-500" />
+                        Compliance Mapping
+                      </h4>
+                      <div className="space-y-2 text-sm">
+                        {layer.mitigation.complianceMapping.nist.length > 0 && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">NIST SP 800-53: </span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {layer.mitigation.complianceMapping.nist.map((ctrl) => (
+                                <Badge key={ctrl} variant="outline" className="text-xs font-mono">
+                                  {ctrl}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {layer.mitigation.complianceMapping.iso27001.length > 0 && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">ISO 27001:2022: </span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {layer.mitigation.complianceMapping.iso27001.map((ctrl) => (
+                                <Badge key={ctrl} variant="outline" className="text-xs font-mono">
+                                  {ctrl}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {layer.mitigation.complianceMapping.soc2.length > 0 && (
+                          <div>
+                            <span className="font-medium text-muted-foreground">SOC 2: </span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {layer.mitigation.complianceMapping.soc2.map((ctrl) => (
+                                <Badge key={ctrl} variant="outline" className="text-xs font-mono">
+                                  {ctrl}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </AccordionContent>
             </AccordionItem>

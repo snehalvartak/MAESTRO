@@ -1,7 +1,7 @@
 'use server';
 /**
  * @fileOverview Generates a comprehensive threat analysis for a specific MAESTRO layer
- * based on a provided system architecture description.
+ * based on a provided system architecture description, including risk scoring.
  *
  * - suggestThreatsForLayer - A function that initiates the threat analysis process.
  * - SuggestThreatsForLayerInput - The input type for the suggestThreatsForLayer function.
@@ -22,12 +22,30 @@ export type SuggestThreatsForLayerInput = z.infer<
   typeof SuggestThreatsForLayerInputSchema
 >;
 
+const RiskScoreSchema = z.object({
+  severity: z
+    .enum(['Critical', 'High', 'Medium', 'Low'])
+    .describe('The severity of the identified threats for this layer.'),
+  likelihood: z
+    .enum(['High', 'Medium', 'Low'])
+    .describe('The likelihood of these threats being exploited.'),
+  riskLevel: z
+    .enum(['Critical', 'High', 'Medium', 'Low'])
+    .describe('The overall risk level combining severity and likelihood.'),
+  rationale: z
+    .string()
+    .describe('A brief rationale explaining the risk score assigned.'),
+});
+
 const SuggestThreatsForLayerOutputSchema = z.object({
   threatAnalysis: z
     .string()
     .describe(
       'A comprehensive threat analysis for the specified layer, formatted in Markdown.'
     ),
+  riskScore: RiskScoreSchema.describe(
+    'A structured risk score for the identified threats in this layer.'
+  ),
 });
 export type SuggestThreatsForLayerOutput = z.infer<
   typeof SuggestThreatsForLayerOutputSchema
@@ -45,7 +63,7 @@ const prompt = ai.definePrompt({
   output: {schema: SuggestThreatsForLayerOutputSchema},
   prompt: `You are a security analyst specializing in identifying potential security vulnerabilities in multi-agent systems, with a focus on the MAESTRO architecture.
 
-Your task is to generate a threat analysis for the specified MAESTRO layer.
+Your task is to generate a threat analysis for the specified MAESTRO layer, along with a structured risk score.
 
 **System Architecture Description:**
 {{{architectureDescription}}}
@@ -65,7 +83,12 @@ Your task is to generate a threat analysis for the specified MAESTRO layer.
 2.  Generate a threat analysis structured into two categories, formatted as Markdown.
 3.  **Category 1: Traditional Threats:** Identify inherent security threats for this layer, ignoring agentic factors. For example, for 'Foundation Models', this could include model poisoning, data leakage, or member inference attacks.
 4.  **Category 2: Agentic Threats:** Reason about how each of the "Agentic Factors to Consider" could introduce new threats or exacerbate existing ones within this specific layer. If a factor applies, describe the potential threat. If it does not apply, you can state that.
-5.  Format the entire output as a single Markdown string. Use headings, bold text, and lists to make the report clear and readable.
+5.  Format the threat analysis as a single Markdown string. Use headings, bold text, and lists to make the report clear and readable.
+6.  Assign a structured risk score:
+    - **severity**: Overall severity of identified threats (Critical/High/Medium/Low)
+    - **likelihood**: Likelihood of exploitation given the architecture (High/Medium/Low)
+    - **riskLevel**: Combined overall risk level (Critical/High/Medium/Low)
+    - **rationale**: 1-2 sentence explanation of the risk score
 
 **Threat Analysis:**`,
 });
