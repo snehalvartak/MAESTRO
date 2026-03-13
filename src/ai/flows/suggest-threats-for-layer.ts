@@ -101,6 +101,9 @@ const suggestThreatsForLayerFlow = ai.defineFlow(
   },
   async input => {
     const {output} = await prompt(input);
-    return output!;
+    if (!output) {
+      throw new Error('AI model returned null output for threat analysis. Schema validation failed: provided data is null.');
+    }
+    return output;
   }
 );

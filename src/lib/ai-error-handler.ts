@@ -54,8 +54,16 @@ export class AIErrorHandler {
       return ErrorCode.AI_SERVICE_UNAVAILABLE;
     }
 
-    // Invalid response format
-    if (message.includes('parse') || message.includes('json') || message.includes('format')) {
+    // Invalid / unparseable response — including Genkit structured-output failures
+    // where the model returns null or non-conforming JSON
+    if (
+      message.includes('parse') ||
+      message.includes('json') ||
+      message.includes('format') ||
+      message.includes('schema validation') ||
+      message.includes('invalid_argument') ||
+      message.includes('provided data')
+    ) {
       return ErrorCode.AI_INVALID_RESPONSE;
     }
 
@@ -72,7 +80,10 @@ export class AIErrorHandler {
     const retryableErrors = [
       ErrorCode.AI_TIMEOUT,
       ErrorCode.NETWORK_ERROR,
-      ErrorCode.AI_SERVICE_UNAVAILABLE
+      ErrorCode.AI_SERVICE_UNAVAILABLE,
+      // Schema validation failures (model returned null/malformed JSON) are
+      // transient — the model may produce valid output on retry.
+      ErrorCode.AI_INVALID_RESPONSE,
     ];
 
     return retryableErrors.includes(error.data.code);

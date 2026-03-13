@@ -34,6 +34,18 @@ describe('AIErrorHandler', () => {
       expect(code).toBe(ErrorCode.AI_INVALID_RESPONSE)
     })
 
+    it('should classify Genkit schema validation failures as invalid response', () => {
+      const error = new Error('INVALID_ARGUMENT: Schema validation failed. Parse Errors: - (root): must be object Provided data: null')
+      const code = AIErrorHandler.classifyGenkitError(error)
+      expect(code).toBe(ErrorCode.AI_INVALID_RESPONSE)
+    })
+
+    it('should classify null-output errors as invalid response', () => {
+      const error = new Error('AI model returned null output for threat analysis. Schema validation failed: provided data is null.')
+      const code = AIErrorHandler.classifyGenkitError(error)
+      expect(code).toBe(ErrorCode.AI_INVALID_RESPONSE)
+    })
+
     it('should classify network errors', () => {
       const error = new Error('Network connection failed')
       const code = AIErrorHandler.classifyGenkitError(error)
@@ -71,7 +83,8 @@ describe('AIErrorHandler', () => {
       const retryableErrors = [
         ErrorCode.AI_TIMEOUT,
         ErrorCode.NETWORK_ERROR,
-        ErrorCode.AI_SERVICE_UNAVAILABLE
+        ErrorCode.AI_SERVICE_UNAVAILABLE,
+        ErrorCode.AI_INVALID_RESPONSE,
       ]
 
       retryableErrors.forEach(code => {
@@ -84,7 +97,6 @@ describe('AIErrorHandler', () => {
     it('should not retry on non-retryable errors', () => {
       const nonRetryableErrors = [
         ErrorCode.AI_RATE_LIMIT_EXCEEDED,
-        ErrorCode.AI_INVALID_RESPONSE,
         ErrorCode.UNKNOWN_ERROR
       ]
 
